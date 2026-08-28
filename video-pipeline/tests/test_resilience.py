@@ -199,3 +199,56 @@ class TestProxyPool:
     def test_empty_pool_is_safe(self, tmp_path):
         pool = self._pool([], tmp_path)
         assert pool.size == 0 and pool.acquire() is None
+
+
+class TestYtDlpResolution:
+    """Finding a runnable yt-dlp.
+
+    Regression: resolution checked only that the binary *existed*. On Windows,
+    Application Control blocks unsigned executables, so
+    `.venv\\Scripts\\yt-dlp.exe` was present, was selected, and then failed at
+    every download with WinError 4551. Candidates are now executed once before
+    being trusted.
+    """
+
+    def test_nonexistent_binary_is_rejected(self):
+        from pipeline._runtime import _runs
+
+        assert not _runs(["/definitely/not/here/yt-dlp"])
+
+    def test_module_form_is_runnable(self):
+        """The fallback must genuinely work - it is the floor everything else
+        degrades to."""
+        import sys
+
+        from pipeline._runtime import _runs
+
+        assert _runs([sys.executable, "-m", "yt_dlp"])
+
+    def test_resolution_returns_a_working_command(self):
+        from pipeline._runtime import _runs, yt_dlp_command
+
+        assert _runs(yt_dlp_command())
+
+    def test_result_is_a_list_not_a_split_string(self):
+        """Regression: the resolved command was cached as a string and
+        re-split on whitespace, which corrupts any path containing a space -
+        'C:\\Program Files\\...' being the obvious one."""
+        from pipeline._runtime import yt_dlp_command
+
+        cmd = yt_dlp_command()
+        assert isinstance(cmd, list)
+        assert all(isinstance(part, str) for part in cmd)
+
+    def test_repeated_calls_are_consistent(self):
+        from pipeline._runtime import yt_dlp_command
+
+        assert yt_dlp_command() == yt_dlp_command()
+
+    def test_caller_cannot_corrupt_the_cache(self):
+        """A caller appending args must not poison the cached value."""
+        from pipeline._runtime import yt_dlp_command
+
+        first = yt_dlp_command()
+        first.append("--version")
+        assert "--version" not in yt_dlp_command()
