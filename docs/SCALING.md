@@ -1,8 +1,8 @@
-# Scaling Across 13 Brands
+# Scaling Across Many Brands
 
-CSC Generation's portfolio (Sur La Table, Backcountry, One Kings Lane, and 10
-others) is the real reason this pipeline exists. The 5-video demo is the
-proof-of-concept; the production target is 13 brands × N videos per day.
+A multi-brand operator running a dozen or more properties is the case this
+pipeline is built for. A handful of videos is the proof of concept; the
+production target is many brands, each processing videos daily.
 
 This document describes how the architecture supports that scale.
 
@@ -98,14 +98,14 @@ The `LocalPublisher` already organizes by `outputs/published/`. The
 
 ## Concurrent Execution
 
-For 13 brands, sequential execution is too slow. Options:
+For many brands, sequential execution is too slow. Options:
 
 1. **Per-brand workers** — 13 separate processes/cron jobs, each
    handling one brand's daily run. Simple, isolated, easy to debug.
 2. **Multiprocessing pool** — one orchestrator process spawns one
    worker per brand, waits for all to finish. 5-10x speedup with no
    shared state.
-3. **Celery / RQ / Temporal** — full job queue. Overkill for 13 brands
+3. **Celery / RQ / Temporal** — full job queue. Overkill for many brands
    but justified at 100+.
 4. **LangGraph as the per-brand orchestrator** — same agent code,
    different config, different queue slot.
@@ -141,7 +141,7 @@ Order of magnitude: $500-1000/month for full portfolio coverage.
 
 ## Observability
 
-For 13 brands running daily, you need:
+For many brands running daily, you need:
 
 - **Per-brand dashboard** — count of videos processed, success rate,
   cost, average safety verdict
@@ -169,7 +169,7 @@ view is a 1-page Jinja template that loops over all brands.
 
 1. "Here's the same pipeline running for Sur La Table and Backcountry
    side by side — see how the watermark and tone change automatically."
-2. "The same logic, plus a S3 publisher, runs across all 13 brands
+2. "The same logic, plus a S3 publisher, runs across all many brands
    daily, with a per-brand circuit breaker."
 3. "The cost is ~$500/month for full portfolio coverage — cheaper than
    one human content coordinator."

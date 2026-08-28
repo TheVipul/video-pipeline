@@ -60,7 +60,7 @@ def check_youtube_reachable(timeout_sec: float = 5.0) -> tuple[bool, str]:
     try:
         req = urllib.request.Request(
             "https://www.youtube.com/",
-            headers={"User-Agent": "Mozilla/5.0 (CSC-VideoPipeline/1.0)"},
+            headers={"User-Agent": "Mozilla/5.0 (VideoPipeline/1.0)"},
         )
         with urllib.request.urlopen(req, timeout=timeout_sec) as r:
             return r.status == 200, f"YouTube status {r.status}"

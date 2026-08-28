@@ -87,7 +87,7 @@ The single biggest technical risk in this project. We layer:
 - **Cost**: ~$0.001-0.005 per video, capped at $1.50/run.
 
 ### 4. Publisher abstraction
-- **Why**: CSC has 13 brands, multiple destinations (CDN, social, internal
+- **Why**: a multi-brand operator has several destinations (CDN, social, internal
   archive). The Publisher interface decouples "what to publish" from
   "where to publish." Local is always-works; S3/MinIO is for production;
   YouTube is a documented extension.
@@ -101,21 +101,7 @@ The single biggest technical risk in this project. We layer:
 - No cookies → higher bot-detection risk, but works
 - 1 of 5 videos fails → pipeline continues, audit log captures the failure
 
-## Cross-Functional Mapping
-
-The JD's "preferred qualifications" all map to features in this build:
-
-| JD Requirement | Where in code |
-|---|---|
-| Autonomous AI agents | `agent/graph.py` + `agent/nodes.py` |
-| LangGraph | `agent/graph.py` |
-| LLM production workflows | `pipeline/ai_analyzer.py` |
-| Python for API integration | `pipeline/metadata.py`, `pipeline/downloader.py` |
-| Workflow automation platforms | yt-dlp, FFmpeg (the "n8n of media") |
-| Digital marketing/ecom familiarity | `configs/brands/surlatable.yaml`, brand config system |
-| Independent problem identification | `safety/audit_log.py` exposes what the agent decided |
-
-## Scaling Across 13 Brands
+## Scaling Across Many Brands
 
 The pipeline is designed to be re-run per brand (or per content batch) with
 different configs. The config system (`configs/brands/*.yaml`) controls:
@@ -128,7 +114,7 @@ different configs. The config system (`configs/brands/*.yaml`) controls:
 - **System prompts** customized per brand voice
 
 A real deployment would:
-1. Run the pipeline nightly across all 13 brands' source channels
+1. Run the pipeline nightly across all many brands' source channels
 2. Bucket output by brand in S3 (`s3://republished/{brand}/{video_id}.mp4`)
 3. Route the JSON manifests to each brand's social media team for review
 4. Auto-publish videos that pass `safety.verdict == "safe"` with confidence

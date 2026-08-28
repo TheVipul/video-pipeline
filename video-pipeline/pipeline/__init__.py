@@ -1,1 +1,1 @@
-"""Pipeline stages for the CSC Video Pipeline."""
+"""Pipeline stages for the Video Pipeline."""

@@ -1,5 +1,5 @@
 """
-Configuration loader for the CSC Video Pipeline.
+Configuration loader for the Video Pipeline.
 
 All settings are read from environment variables (via .env) using pydantic-settings.
 The pipeline will run in a degraded mode (no AI enrichment) if LLM_API_KEY is unset.

@@ -31,7 +31,7 @@ REPORT_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CSC Video Pipeline - Run Report</title>
+<title>Video Pipeline - Run Report</title>
 <style>
 :root {
   --bg: #0f1115; --panel: #1a1d24; --border: #2a2f3a;
@@ -87,7 +87,7 @@ summary { cursor: pointer; color: var(--muted); }
 </head>
 <body>
 <div class="wrap">
-  <h1>CSC Video Pipeline - Run Report</h1>
+  <h1>Video Pipeline - Run Report</h1>
   <div class="subtitle">Generated {{ generated_at }} &middot; Brand: <span class="code">{{ brand }}</span></div>
 
   <div class="cards">

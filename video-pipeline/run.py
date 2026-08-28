@@ -1,5 +1,5 @@
 """
-Entry point for the CSC Video Pipeline.
+Entry point for the Video Pipeline.
 
 Usage:
     python run.py [--urls PATH] [--brand BRAND] [--max N] [--dry-run] [--publisher {local,s3,youtube}]
@@ -123,7 +123,7 @@ def _sigint_handler(audit: AuditLog):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="CSC AI Solutions Engineer - Video Pipeline (Option 2)")
+    parser = argparse.ArgumentParser(description="Video Pipeline - YouTube ingest with AI review gate")
     parser.add_argument("--urls", type=Path, default=Path("inputs/urls.txt"))
     parser.add_argument("--brand", type=str, default=None, help="Brand config name (e.g. generic, surlatable)")
     parser.add_argument("--max", type=int, default=None, help="Max videos to process")
@@ -186,8 +186,8 @@ def main(argv: list[str] | None = None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     setup_logging(log_dir=output_dir / "logs", level=args.log_level, json_logs=False)
     console.print(Panel.fit(
-        "[bold cyan]CSC AI Solutions Engineer - Video Pipeline[/bold cyan]\n"
-        "[dim]Option 2: YouTube Video Pipeline with AI orchestration[/dim]",
+        "[bold cyan]Video Pipeline[/bold cyan]\n"
+        "[dim]YouTube ingest, AI review gate, and publishing[/dim]",
         border_style="cyan",
     ))
     _print_settings(settings)

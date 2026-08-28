@@ -72,7 +72,7 @@ are short and well-distributed).
 
 **For production**: Residential proxies (Bright Data, Smartproxy, Oxylabs).
 Datacenter proxies (Webshare free tier) are flagged by YouTube more
-aggressively. Budget: $50-500/month for 13 brands running daily.
+aggressively. Budget: $50-500/month for many brands running daily.
 
 ### Layer 5: Exponential backoff + jitter
 `SAFETY_DOWNLOAD_MIN_INTERVAL_SEC=2` and `SAFETY_DOWNLOAD_MAX_INTERVAL_SEC=8`
@@ -140,7 +140,7 @@ before continuing.
 
 ## Production Deployment
 
-For CSC Generation's 13 brands, the production setup would be:
+Running many brands in production, the setup would be:
 
 1. **Per-brand worker pools** — each brand gets its own IP range so a
    block on one brand doesn't affect the others

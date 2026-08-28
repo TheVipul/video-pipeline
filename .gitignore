@@ -33,6 +33,6 @@ venv/
 *.pem
 *.key
 
-# CSC assessment packet — their confidential document, not ours to publish.
+# Assessment packet (kept outside the repo).
 AI_Solutions_Engineer_Assessment_Packet.pdf
 *Assessment_Packet*.pdf
