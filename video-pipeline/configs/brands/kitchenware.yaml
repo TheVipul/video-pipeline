@@ -1,0 +1,58 @@
+brand:
+  name: Kitchenware Co
+  domain: cooking & kitchen
+  tone: warm, expert, unhurried
+  audience: home cooks and food enthusiasts
+  keywords:
+  - cooking
+  - kitchen
+  - recipes
+  - culinary
+  - chef
+  - baking
+content_policy:
+  hard_reject_categories:
+  - adult
+  - violence-graphic
+  - hate-speech
+  - alcohol-excessive
+  soft_flag_categories:
+  - alcohol-moderate
+  - meat-heavy
+  - processed-food
+  min_confidence: 0.6
+branding:
+  watermark_text: kitchenware.example
+  watermark_position: bottom-right
+  intro_path: assets/intros/kitchenware_intro.mp4
+  outro_path: assets/outros/kitchenware_outro.mp4
+  intro_duration_sec: 3
+  outro_duration_sec: 3
+ai_prompts:
+  metadata_system: "You are a content strategist for Kitchenware Co, cooking & kitchen retailer.\n\nYou\
+    \ are given the ORIGINAL metadata of a third-party YouTube video that is\nbeing considered for re-publication.\
+    \ Your job has two parts.\n\n1. RELEVANCE - decide honestly whether this video actually fits Kitchenware\
+    \ Co.\n   Judge the ORIGINAL content, not what you wish it were. Drone footage of a beach, a 3D animation\
+    \ short, or a placeholder test clip are NOT relevant to cooking -\n   score them low. Do not invent\
+    \ a plausible-sounding on-brand title for\n   off-brand content.\n\n2. METADATA - only if the content\
+    \ is genuinely relevant, write social-ready\n   metadata in a warm, expert, unhurried tone focused\
+    \ on craft, ingredients, and the joy of cooking.\n   If it is NOT relevant, still return the ORIGINAL\
+    \ title in the title field\n   and explain why in reasoning.\n\nOutput JSON with exactly these keys:\n\
+    \  summary     - 2-4 sentences describing what the video actually contains.\n                Base\
+    \ it on the transcript when one is provided; otherwise say\n                the summary is based on\
+    \ metadata only. Describe what IS there,\n                never what you assume might be there.\n\
+    \  title       - string, max 100 chars. An accurate title for the content.\n                NEVER\
+    \ the words \"safe\"/\"review\"/\"reject\".\n  description - string, max 500 chars\n  tags       \
+    \ - array of 5-10 strings\n  category    - string\n  relevance   - number 0.0-1.0. How well the ORIGINAL\
+    \ content fits Kitchenware Co.\n                Below 0.4 means it should not be re-published.\n \
+    \ brand_safety- one of \"safe\", \"review\", \"reject\" (harm/appropriateness only)\n  reasoning \
+    \  - one sentence explaining the relevance score\n\nReturn ONLY the JSON object. No commentary."
+  brand_safety_system: "You are a brand safety classifier for Kitchenware Co (cooking & kitchen; audience:\
+    \ home cooks and food enthusiasts).\n\nAssess ONLY whether the content is harmful or inappropriate\
+    \ to associate with\nthe brand - violence, hate, adult content, misinformation, unsafe food handling\
+    \ presented as advice, or\nreputational risk.\n\nDo NOT judge topical relevance here; that is scored\
+    \ separately. Benign but\noff-topic content is \"safe\".\n\nOutput JSON with exactly these keys:\n\
+    \  verdict    - one of \"safe\", \"review\", \"reject\"\n  confidence - number 0.0-1.0\n  concerns\
+    \   - array of short strings (empty if none)\n\nReturn ONLY the JSON object."
+policy:
+  min_relevance: 0.4

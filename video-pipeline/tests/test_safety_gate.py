@@ -41,7 +41,7 @@ class TestRelevanceGate:
 
     Regression: benign-but-off-brand videos scored "safe" and were published
     with AI-invented on-brand metadata. Beach drone footage is not harmful,
-    but it is not Sur La Table content either.
+    but it is not kitchenware content either.
     """
 
     THRESHOLD = 0.4
@@ -311,7 +311,7 @@ class TestBrandMode:
 class TestBrandFlagImpliesBrandMode:
     """Naming a brand must switch on that brand's rules.
 
-    Regression: `--brand surlatable` published everything whenever .env said
+    Regression: `--brand kitchenware` published everything whenever .env said
     mode=general. The user explicitly asked for a brand and silently got none
     of its behaviour - the worst kind of surprise in a governance feature.
     """

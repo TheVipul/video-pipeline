@@ -9,13 +9,13 @@ This document describes how the architecture supports that scale.
 ## The Multi-Brand Problem
 
 Each brand has:
-- A different voice (Sur La Table = warm, Backcountry = adventurous)
-- Different content policies (Sur La Table rejects alcohol; Backcountry
+- A different voice (Kitchenware Co = warm, Outdoor Gear Co = adventurous)
+- Different content policies (Kitchenware Co rejects alcohol; Outdoor Gear Co
   welcomes outdoor adventure)
 - Different publishing destinations (Instagram, TikTok, YouTube, owned
   site)
-- Different team workflows (Sur La Table has a marketing coordinator;
-  Backcountry is fully self-serve)
+- Different team workflows (Kitchenware Co has a marketing coordinator;
+  Outdoor Gear Co is fully self-serve)
 
 A single hardcoded pipeline serves none of them well.
 
@@ -25,7 +25,7 @@ A single hardcoded pipeline serves none of them well.
 
 ```yaml
 brand:
-  name: "Sur La Table"
+  name: "Kitchenware Co"
   tone: "cozy"
   audience: "home cooks"
   keywords: [...]
@@ -36,16 +36,16 @@ content_policy:
   min_confidence: 0.6
 
 branding:
-  watermark_text: "surlatable.com"
+  watermark_text: "kitchenware.example"
   watermark_position: "bottom-right"
-  intro_path: "assets/intros/surlatable_intro.mp4"
-  outro_path: "assets/outros/surlatable_outro.mp4"
+  intro_path: "assets/intros/kitchenware_intro.mp4"
+  outro_path: "assets/outros/kitchenware_outro.mp4"
 
 ai_prompts:
   metadata_system: |
-    You are a content strategist for Sur La Table...
+    You are a content strategist for Kitchenware Co...
   brand_safety_system: |
-    You are a brand safety classifier for Sur La Table...
+    You are a brand safety classifier for Kitchenware Co...
 ```
 
 The pipeline reads the active config based on `--brand {name}` (or
@@ -60,7 +60,7 @@ For each brand, a daily/weekly run looks like:
 1. Brand team (or automation) populates inputs/urls_{brand}.txt
    with the videos they want re-published.
 2. CI/CD or cron triggers:
-   python run.py --brand surlatable --urls inputs/urls_surlatable.txt
+   python run.py --brand kitchenware --urls inputs/urls_kitchenware.txt
 3. Pipeline:
    - Validates URLs
    - For each: extract → analyze → download → transform → publish
@@ -80,13 +80,13 @@ Production S3 layout (illustrative):
 
 ```
 s3://csc-republished/
-├── surlatable/
+├── kitchenware/
 │   ├── 2026-08-26/
 │   │   ├── videos/{video_id}.mp4
 │   │   └── manifests/{video_id}.json
 │   ├── 2026-08-27/
 │   │   └── ...
-├── backcountry/
+├── outdoor_gear/
 │   ├── 2026-08-26/
 │   │   └── ...
 └── ...
@@ -167,7 +167,7 @@ view is a 1-page Jinja template that loops over all brands.
 
 ## What I'd demo to a hiring manager in the 13-brand framing
 
-1. "Here's the same pipeline running for Sur La Table and Backcountry
+1. "Here's the same pipeline running for Kitchenware Co and Outdoor Gear Co
    side by side — see how the watermark and tone change automatically."
 2. "The same logic, plus a S3 publisher, runs across all many brands
    daily, with a per-brand circuit breaker."

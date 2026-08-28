@@ -125,7 +125,7 @@ def _sigint_handler(audit: AuditLog):
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Video Pipeline - YouTube ingest with AI review gate")
     parser.add_argument("--urls", type=Path, default=Path("inputs/urls.txt"))
-    parser.add_argument("--brand", type=str, default=None, help="Brand config name (e.g. generic, surlatable)")
+    parser.add_argument("--brand", type=str, default=None, help="Brand config name (e.g. generic, kitchenware)")
     parser.add_argument("--max", type=int, default=None, help="Max videos to process")
     parser.add_argument("--publisher", choices=["local", "gdrive", "s3", "youtube"], default="local")
     parser.add_argument("--dry-run", action="store_true", help="Skip network calls (metadata + downloads are mocked)")
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
         settings.pipeline.brand = args.brand
         # Asking for a real brand implies you want that brand's rules.
         #
-        # Without this, `--brand surlatable` published everything whenever
+        # Without this, `--brand kitchenware` published everything whenever
         # .env happened to say mode=general - the user explicitly named a
         # brand and silently got none of its behaviour. An explicit --mode
         # still wins, so the override remains available.

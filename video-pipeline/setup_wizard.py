@@ -96,7 +96,7 @@ def main() -> int:
                 print("  No name given - falling back to general mode.")
                 mode, brand = "general", "generic"
             else:
-                template = BRANDS_DIR / "surlatable.yaml"
+                template = BRANDS_DIR / "kitchenware.yaml"
                 target = BRANDS_DIR / f"{slug}.yaml"
                 if not target.exists() and template.exists():
                     shutil.copy(template, target)

@@ -193,7 +193,7 @@ when a brand is behind the output.
 Copy an existing one:
 
 ```bash
-cp configs/brands/surlatable.yaml configs/brands/yourbrand.yaml
+cp configs/brands/kitchenware.yaml configs/brands/yourbrand.yaml
 ```
 
 ### Step 2 — edit it

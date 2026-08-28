@@ -191,10 +191,10 @@ successful resume logs how many records it restored and where it is resuming.
 
 ## 18. Only two brand configs existed
 
-The walkthrough script and README referred to a `backcountry` brand that was
+The walkthrough script and README referred to a `outdoor_gear` brand that was
 never created, so the multi-brand claim could not be demonstrated live.
 
-**Added:** `configs/brands/backcountry.yaml` — its own audience, tone,
+**Added:** `configs/brands/outdoor_gear.yaml` — its own audience, tone,
 watermark, prompts and relevance threshold. Verified: it holds the same demo
 videos that `generic` publishes, because none of them are outdoor-gear content.
 
