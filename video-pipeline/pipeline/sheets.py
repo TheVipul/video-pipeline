@@ -146,24 +146,49 @@ class SheetsClient:
     # --- read -----------------------------------------------------------------
 
     def read_rows(self, include_done: bool = False) -> list[SheetRow]:
-        """Read URL rows. By default only those not yet processed."""
-        values = self._svc().spreadsheets().values().get(
-            spreadsheetId=self.spreadsheet_id, range=f"{self.tab}!A2:B",
-        ).execute().get("values", [])
+        """Read URL rows. By default only those not yet processed.
+
+        Reads the grid rather than plain cell values because Sheets converts a
+        pasted link into a "smart chip" by default. A chip displays the page
+        *title*, and the plain values API returns that title - so a correctly
+        pasted YouTube link arrives as "Some Video - YouTube" and fails
+        validation. The actual URL is kept in the cell's chip metadata, so it
+        is recovered from there and the visible title ignored.
+        """
+        grid = self._svc().spreadsheets().get(
+            spreadsheetId=self.spreadsheet_id,
+            ranges=[f"{self.tab}!A2:B"],
+            includeGridData=True,
+            fields=(
+                "sheets/data/rowData/values/formattedValue,"
+                "sheets/data/rowData/values/hyperlink,"
+                "sheets/data/rowData/values/chipRuns/chip/richLinkProperties/uri"
+            ),
+        ).execute()
+
+        try:
+            row_data = grid["sheets"][0]["data"][0].get("rowData", [])
+        except (KeyError, IndexError):
+            row_data = []
 
         rows: list[SheetRow] = []
-        for offset, raw in enumerate(values):
-            url = (raw[0] if len(raw) > 0 else "").strip()
-            status = (raw[1] if len(raw) > 1 else "").strip()
+        chips = 0
+        for offset, entry in enumerate(row_data):
+            cells = entry.get("values", [])
+            url = _cell_url(cells[0]) if len(cells) > 0 else ""
+            status = (cells[1].get("formattedValue", "") if len(cells) > 1 else "").strip()
             if not url:
                 continue
+            if len(cells) > 0 and cells[0].get("chipRuns"):
+                chips += 1
             row = SheetRow(row_number=offset + 2, url=url, status=status)
             if include_done or row.is_pending:
                 rows.append(row)
 
         log.info(
             "sheet_rows_read",
-            total=len(values), returned=len(rows), include_done=include_done,
+            total=len(row_data), returned=len(rows),
+            smart_chips=chips, include_done=include_done,
         )
         return rows
 
@@ -204,6 +229,30 @@ class SheetsClient:
     @property
     def web_url(self) -> str:
         return f"https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/edit"
+
+
+def _cell_url(cell: dict) -> str:
+    """Get the URL from a cell, however Sheets chose to store it.
+
+    Three forms, most reliable first:
+      1. a smart chip, where the URL is in chip metadata and the visible text
+         is the page title
+      2. a plain hyperlink, where the text may be link text rather than the URL
+      3. plain text typed or pasted without conversion
+    """
+    if not cell:
+        return ""
+
+    for run in cell.get("chipRuns") or []:
+        uri = ((run.get("chip") or {}).get("richLinkProperties") or {}).get("uri")
+        if uri:
+            return uri.strip()
+
+    hyperlink = cell.get("hyperlink")
+    if hyperlink:
+        return hyperlink.strip()
+
+    return (cell.get("formattedValue") or "").strip()
 
 
 def _cell(value) -> str:

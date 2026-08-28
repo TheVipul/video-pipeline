@@ -302,3 +302,54 @@ class TestScopeValidation:
                 allow_interactive=False,
             )
         assert "publisher gdrive" in str(excinfo.value)
+
+
+class TestSmartChips:
+    """Sheets converts a pasted link into a smart chip by default.
+
+    Regression: a chip displays the page *title*, and the plain values API
+    returns that title rather than the link. So a correctly pasted YouTube URL
+    arrived as "Some Video - YouTube" and was rejected as invalid. The real
+    URL lives in the cell's chip metadata.
+    """
+
+    def test_chip_url_is_preferred_over_visible_title(self):
+        from pipeline.sheets import _cell_url
+
+        cell = {
+            "formattedValue": "Artificial intelligence explained - YouTube",
+            "chipRuns": [{"chip": {"richLinkProperties": {
+                "uri": "https://www.youtube.com/watch?v=UdE-W30oOXo"}}}],
+        }
+        assert _cell_url(cell) == "https://www.youtube.com/watch?v=UdE-W30oOXo"
+
+    def test_plain_hyperlink_is_used_when_no_chip(self):
+        from pipeline.sheets import _cell_url
+
+        cell = {"formattedValue": "click here",
+                "hyperlink": "https://youtu.be/jNQXAC9IVRw"}
+        assert _cell_url(cell) == "https://youtu.be/jNQXAC9IVRw"
+
+    def test_plain_text_still_works(self):
+        from pipeline.sheets import _cell_url
+
+        url = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        assert _cell_url({"formattedValue": url}) == url
+
+    def test_empty_cell_is_safe(self):
+        from pipeline.sheets import _cell_url
+
+        assert _cell_url({}) == ""
+        assert _cell_url(None) == ""
+
+    def test_chip_url_passes_validation(self):
+        """The whole point: a chipped paste must survive URL validation."""
+        from safety.input_validator import validate_url
+        from pipeline.sheets import _cell_url
+
+        cell = {
+            "formattedValue": "Some Video - YouTube",
+            "chipRuns": [{"chip": {"richLinkProperties": {
+                "uri": "https://www.youtube.com/watch?v=UdE-W30oOXo"}}}],
+        }
+        assert validate_url(_cell_url(cell)).video_id == "UdE-W30oOXo"
