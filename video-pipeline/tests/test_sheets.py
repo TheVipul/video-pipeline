@@ -353,3 +353,65 @@ class TestSmartChips:
                 "uri": "https://www.youtube.com/watch?v=UdE-W30oOXo"}}}],
         }
         assert validate_url(_cell_url(cell)).video_id == "UdE-W30oOXo"
+
+
+class TestScopeUnion:
+    """One token must cover the whole application.
+
+    Regression: each service requested only its own scope. Because a token is
+    granted exactly what was asked for, publishing to Drive issued a
+    Drive-only token and the watcher then issued a Sheets-only token - so the
+    two kept overwriting each other's access and alternated between
+    'invalid_scope' on read and 'insufficient authentication scopes' on
+    publish.
+    """
+
+    def _requested(self, asked_for, monkeypatch, tmp_path):
+        """Capture the scope list load_credentials actually asks Google for."""
+        captured = {}
+
+        class _Flow:
+            @classmethod
+            def from_client_secrets_file(cls, path, scopes):
+                captured["scopes"] = list(scopes)
+                raise RuntimeError("stop before opening a browser")
+
+        import google_auth_oauthlib.flow as flow_mod
+        monkeypatch.setattr(flow_mod, "InstalledAppFlow", _Flow)
+
+        from pipeline.google_auth import load_credentials
+
+        secrets = tmp_path / "client_secret.json"
+        secrets.write_text("{}")
+        try:
+            load_credentials(asked_for, credentials_file=secrets,
+                             token_file=tmp_path / "absent.json")
+        except Exception:
+            pass
+        return set(captured.get("scopes", []))
+
+    def test_asking_for_sheets_also_requests_drive(self, monkeypatch, tmp_path):
+        from pipeline.google_auth import DRIVE_SCOPE, SHEETS_SCOPE
+
+        requested = self._requested([SHEETS_SCOPE], monkeypatch, tmp_path)
+        assert {DRIVE_SCOPE, SHEETS_SCOPE} <= requested
+
+    def test_asking_for_drive_also_requests_sheets(self, monkeypatch, tmp_path):
+        from pipeline.google_auth import DRIVE_SCOPE, SHEETS_SCOPE
+
+        requested = self._requested([DRIVE_SCOPE], monkeypatch, tmp_path)
+        assert {DRIVE_SCOPE, SHEETS_SCOPE} <= requested
+
+    def test_extra_scopes_are_added_not_replaced(self, monkeypatch, tmp_path):
+        """Using the YouTube publisher must widen the token, not narrow it."""
+        from pipeline.google_auth import (
+            DRIVE_SCOPE, SHEETS_SCOPE, YOUTUBE_UPLOAD_SCOPE,
+        )
+
+        requested = self._requested([YOUTUBE_UPLOAD_SCOPE], monkeypatch, tmp_path)
+        assert {DRIVE_SCOPE, SHEETS_SCOPE, YOUTUBE_UPLOAD_SCOPE} <= requested
+
+    def test_base_scopes_cover_both_services(self):
+        from pipeline.google_auth import BASE_SCOPES, DRIVE_SCOPE, SHEETS_SCOPE
+
+        assert set(BASE_SCOPES) == {DRIVE_SCOPE, SHEETS_SCOPE}

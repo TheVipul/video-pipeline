@@ -30,6 +30,19 @@ DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 YOUTUBE_UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 
+# Every credential request includes these, whichever service is being built.
+#
+# Scopes are a property of the *token*, not of a single API call, and a token
+# is granted exactly what was asked for. So requesting one scope at a time
+# produces a token narrowed to that scope, which then breaks the other
+# service - publishing to Drive would re-issue a Drive-only token, the
+# watcher would re-issue a Sheets-only token, and the two would take turns
+# breaking each other on every run.
+#
+# Asking for the union every time means one consent covers the whole app and
+# the token stays valid for all of it.
+BASE_SCOPES = (DRIVE_SCOPE, SHEETS_SCOPE)
+
 DEFAULT_CREDENTIALS_FILE = Path("inputs/client_secret.json")
 DEFAULT_TOKEN_FILE = Path("inputs/google_token.json")
 
@@ -72,7 +85,11 @@ def load_credentials(
     """
     credentials_file = Path(credentials_file or DEFAULT_CREDENTIALS_FILE)
     token_file = Path(token_file or DEFAULT_TOKEN_FILE)
-    scopes = list(scopes)
+
+    # Always request the union, so a token issued for one service is never
+    # narrower than another service needs. Sorted for a stable comparison
+    # against what Google reports back as granted.
+    scopes = sorted(set(scopes) | set(BASE_SCOPES))
 
     try:
         from google.auth.transport.requests import Request
