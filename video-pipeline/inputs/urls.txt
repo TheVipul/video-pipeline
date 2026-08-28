@@ -1,0 +1,28 @@
+# =============================================================================
+# Sample YouTube URLs for the demo pipeline
+# =============================================================================
+# Each URL below was verified to be currently available on YouTube as of
+# Aug 2026. All are short (< 10 min) and copyright-safe for demonstration
+# purposes (public-domain, YouTube-official, or tagged "no copyright").
+#
+# Format: one URL per line; lines starting with # are ignored.
+# Run with --max N to process only the first N.
+# =============================================================================
+
+# 1. "Me at the zoo" - the first YouTube video ever uploaded (19s, public)
+https://www.youtube.com/watch?v=jNQXAC9IVRw
+
+# 2. "Demo Background Sample Video" - 18s, public sample content
+https://www.youtube.com/watch?v=K4TOrB7at0Y
+
+# 3. "YouTube" - YouTube's own 2-min sample / promo (2m05s)
+https://www.youtube.com/watch?v=Y7dpJ0oseIA
+
+# 4. "Sea waves & beach drone video | Free HD Video - no copyright" (3m22s)
+https://www.youtube.com/watch?v=6stlCkUDG_s
+
+# 5. "Spring - Blender Open Movie" - CC BY 3.0 (7m44s)
+https://www.youtube.com/watch?v=WhWc3b3KhnY
+
+# 6. (Optional 6th, useful for fallback testing) "COSTA RICA IN 4K 60fps HDR" (5m14s)
+# https://www.youtube.com/watch?v=LXb3EKWsInQ

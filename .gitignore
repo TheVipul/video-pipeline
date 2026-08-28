@@ -1,0 +1,38 @@
+# Repo-wide ignores. Per-project rules live in video-pipeline/.gitignore.
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Virtualenvs — rebuilt by setup.sh / setup.ps1, and they contain
+# absolute paths that break on any other machine.
+.venv/
+venv/
+
+# Secrets. Belt and braces: video-pipeline/.gitignore covers these too, but a
+# leaked credential is not the place to rely on a single layer.
+.env
+.env.*
+!.env.example
+**/inputs/client_secret*.json
+**/inputs/*token*.json
+**/inputs/*credentials*.json
+**/inputs/*secret*.json
+**/inputs/cookies.txt
+**/inputs/proxies.txt
+*.pem
+*.key
+
+# CSC assessment packet — their confidential document, not ours to publish.
+AI_Solutions_Engineer_Assessment_Packet.pdf
+*Assessment_Packet*.pdf

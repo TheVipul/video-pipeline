@@ -1,0 +1,17 @@
+# =============================================================================
+# Proxy list (one per line)
+# =============================================================================
+# Format: protocol://user:pass@host:port
+# Examples:
+#   http://user:pass@p.webshare.io:80
+#   socks5://user:pass@residential.example.com:1080
+#   http://1.2.3.4:8080
+#
+# If empty, the pipeline uses direct connection + player_client rotation.
+# Free datacenter proxies (Webshare, 10 free) work for light demo use.
+# Production: residential proxies (Bright Data, Smartproxy, Oxylabs).
+# =============================================================================
+
+# Uncomment and fill in your proxies here. Comments start with #.
+# http://username:password@proxy1.webshare.io:80
+# http://username:password@proxy2.webshare.io:80

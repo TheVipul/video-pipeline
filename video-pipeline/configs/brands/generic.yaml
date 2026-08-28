@@ -1,0 +1,50 @@
+brand:
+  name: Generic
+  domain: general
+  tone: neutral
+  audience: general public
+  keywords:
+  - video
+  - highlights
+  - share
+content_policy:
+  hard_reject_categories:
+  - adult
+  - violence-graphic
+  - hate-speech
+  soft_flag_categories:
+  - political
+  - religious
+  - controversial
+  min_confidence: 0.5
+branding:
+  watermark_text: ''
+  watermark_position: bottom-right
+  intro_path: ''
+  outro_path: ''
+  intro_duration_sec: 0
+  outro_duration_sec: 0
+ai_prompts:
+  metadata_system: "You are a content editor for a general-interest archive channel.\n\nThis channel has\
+    \ NO topical restriction - it re-publishes a wide range of\nvideo. Your job is to write accurate,\
+    \ useful metadata for the content as it\nactually is. Do not invent a theme the video does not have.\n\
+    \nOutput JSON with exactly these keys:\n  summary     - 2-4 sentences describing what the video actually\
+    \ contains.\n                Base it on the transcript when one is provided; otherwise say\n     \
+    \           the summary is based on metadata only. Describe what IS there,\n                never\
+    \ what you assume might be there.\n  title       - string, max 100 chars. An accurate title for the\
+    \ content.\n                NEVER the words \"safe\"/\"review\"/\"reject\".\n  description - string,\
+    \ max 500 chars, factual description of what is shown\n  tags        - array of 5-10 strings drawn\
+    \ from the actual content\n  category    - string\n  relevance   - number 0.0-1.0. Because this channel\
+    \ accepts any topic, score\n                1.0 for any coherent, watchable video. Score below 0.3\
+    \ ONLY if\n                the content is unusable: empty, corrupt, or a pure placeholder\n      \
+    \          with no real content.\n  brand_safety- one of \"safe\", \"review\", \"reject\" (harm/appropriateness\
+    \ only)\n  reasoning   - one sentence\n\nReturn ONLY the JSON object. No commentary."
+  brand_safety_system: "You are a brand safety classifier for the brand (a general-interest content channel;\
+    \ audience: a general audience).\n\nAssess ONLY whether the content is harmful or inappropriate to\
+    \ associate with\nthe brand - violence, hate, adult content, misinformation, unsafe practices,\nor\
+    \ reputational risk.\n\nDo NOT judge topical relevance here; that is scored separately. Benign but\n\
+    off-topic content is \"safe\".\n\nOutput JSON with exactly these keys:\n  verdict    - one of \"safe\"\
+    , \"review\", \"reject\"\n  confidence - number 0.0-1.0\n  concerns   - array of short strings (empty\
+    \ if none)\n\nReturn ONLY the JSON object."
+policy:
+  min_relevance: 0.0

@@ -1,0 +1,49 @@
+# Environment & secrets
+#
+# Belt and braces: the explicit names document what exists, and the wildcards
+# catch anything added later. A cached OAuth token is a live credential - it
+# grants API access on the user's behalf until revoked - so a token file
+# reaching a repo is a credential leak even in a private one.
+.env
+.env.*
+!.env.example
+inputs/client_secret*.json
+inputs/*token*.json
+inputs/*credentials*.json
+inputs/*secret*.json
+inputs/cookies.txt
+inputs/proxies.txt
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# Outputs (keep example structure, ignore runtime artifacts)
+outputs/raw/
+outputs/transformed/
+outputs/published/videos/
+outputs/published/manifests/
+outputs/logs/
+outputs/audit.jsonl
+outputs/final_state.json
+outputs/checkpoint.json
+outputs/report.html
+!outputs/published/.gitkeep
+!outputs/raw/.gitkeep
+!outputs/transformed/.gitkeep
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime artifact written when driving the pipeline from a sheet.
+outputs/_sheet_urls.txt
