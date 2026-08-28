@@ -69,9 +69,13 @@ forced restart does not land mid-demo.
 
 ```powershell
 cd C:\
-git clone <your-repo-url> video-pipeline
-cd video-pipeline\video-pipeline
+git clone https://github.com/TheVipul/video-pipeline.git pipeline
+cd pipeline\video-pipeline
 ```
+
+The working directory is `C:\pipeline\video-pipeline` — the repo cloned as
+`pipeline`, and the pipeline itself lives one level in. Every command below
+assumes you are in that folder.
 
 No git on the machine? Copy the folder over, but **exclude `.venv`** — a
 virtualenv contains absolute paths and will not work on another machine. It
@@ -79,19 +83,28 @@ gets rebuilt in the next step.
 
 ### ☐ 2.2 Credentials
 
-Two files must reach the Windows machine. Both are gitignored, so they will
-**not** arrive with a `git clone`. Copy them manually:
+Two things are gitignored and will **not** arrive with a `git clone`. Rather
+than copying secrets between machines, recreate them in place — it is safer
+and takes about the same time.
 
-| File | What it is |
-|---|---|
-| `.env` | Your MiniMax key and pipeline settings |
-| `inputs\client_secret.json` | Your Google OAuth client |
+**The `.env` file.** `setup.ps1` creates one from the template in the next
+phase. Afterwards, open it and paste your MiniMax key into `LLM_API_KEY`.
+Everything else is already correct.
 
-**Do not copy `inputs\google_token.json`.** It would work, but you will
-generate a fresh one on this machine in Phase 4 — and copying live tokens
-between machines is a habit worth not forming.
+**The Google OAuth client.** Download it again rather than copying it across:
 
-Transfer them the way you would any secret. Not email, not a public share.
+1. [console.cloud.google.com](https://console.cloud.google.com) → your
+   `video-pipeline` project
+2. **APIs & Services → Credentials** → your existing OAuth 2.0 Client ID
+3. Click the download icon → save the JSON
+4. Put it at `C:\pipeline\video-pipeline\inputs\client_secret.json`
+
+Same client, same project — so the account you already added as a test user
+still works.
+
+**Do not copy `inputs\google_token.json` across.** You will generate a fresh
+one on this machine in Phase 4, and moving live tokens between machines is a
+habit worth not forming.
 
 ---
 
@@ -154,7 +167,7 @@ be there with a readable filename.
 ### ☐ 5.1 Start it
 
 ```powershell
-.\.venv\Scripts\python.exe watch.py --sheet <SHEET_ID> --publisher gdrive
+.\.venv\Scripts\python.exe watch.py --sheet 1dIZbUCopr9mypk_l6ku37Gmry5hBSVIywUL0AkSGLTg --publisher gdrive
 ```
 
 Leave this window open. Paste a URL into column A of the sheet and watch:
@@ -178,9 +191,9 @@ Pick one:
 3. **Triggers:** New → **At startup**. Tick **"Repeat task every 5 minutes"**
    for an indefinite duration — this restarts it if it ever exits
 4. **Actions:** New → Start a program
-   - Program: `C:\video-pipeline\video-pipeline\.venv\Scripts\python.exe`
-   - Arguments: `watch.py --sheet <SHEET_ID> --publisher gdrive`
-   - **Start in:** `C:\video-pipeline\video-pipeline`
+   - Program: `C:\pipeline\video-pipeline\.venv\Scripts\python.exe`
+   - Arguments: `watch.py --sheet 1dIZbUCopr9mypk_l6ku37Gmry5hBSVIywUL0AkSGLTg --publisher gdrive`
+   - **Start in:** `C:\pipeline\video-pipeline`
 5. **Conditions:** untick **"Start the task only if the computer is on AC
    power"** if it is a laptop
 6. **Settings:** tick **"If the task fails, restart every 1 minute"**
@@ -194,7 +207,7 @@ Simplest, and you can see the log. Dies on logout. Fine while you are actively
 demoing:
 
 ```powershell
-Start-Process powershell -ArgumentList '-NoExit','-Command','cd C:\video-pipeline\video-pipeline; .\.venv\Scripts\python.exe watch.py --sheet <SHEET_ID> --publisher gdrive'
+Start-Process powershell -ArgumentList '-NoExit','-Command','cd C:\pipeline\video-pipeline; .\.venv\Scripts\python.exe watch.py --sheet 1dIZbUCopr9mypk_l6ku37Gmry5hBSVIywUL0AkSGLTg --publisher gdrive'
 ```
 
 ### ☐ 5.3 Confirm it is actually alive
@@ -250,8 +263,8 @@ Set a calendar reminder for every 6 days while the sheet is shared.
 
 ```powershell
 # Start the watcher
-cd C:\video-pipeline\video-pipeline
-.\.venv\Scripts\python.exe watch.py --sheet <SHEET_ID> --publisher gdrive
+cd C:\pipeline\video-pipeline
+.\.venv\Scripts\python.exe watch.py --sheet 1dIZbUCopr9mypk_l6ku37Gmry5hBSVIywUL0AkSGLTg --publisher gdrive
 
 # Refresh Google auth (weekly)
 .\.venv\Scripts\python.exe run.py --max 1 --publisher gdrive
