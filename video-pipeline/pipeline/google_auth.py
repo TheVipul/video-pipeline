@@ -61,8 +61,15 @@ def load_credentials(
     scopes: Iterable[str],
     credentials_file: Optional[Path] = None,
     token_file: Optional[Path] = None,
+    allow_interactive: bool = True,
 ):
-    """Return authorised Google credentials, running consent if needed."""
+    """Return authorised Google credentials, running consent if needed.
+
+    `allow_interactive=False` is for unattended processes such as the sheet
+    watcher. Consent opens a browser and blocks until somebody completes it -
+    on a headless or background process that is a hang nobody sees, so it is
+    better to fail with an instruction than to wait forever.
+    """
     credentials_file = Path(credentials_file or DEFAULT_CREDENTIALS_FILE)
     token_file = Path(token_file or DEFAULT_TOKEN_FILE)
     scopes = list(scopes)
@@ -82,11 +89,27 @@ def load_credentials(
         try:
             creds = Credentials.from_authorized_user_file(str(token_file), scopes)
         except ValueError:
-            # Cached token was granted for a different scope set. Discard it
-            # and re-consent rather than failing with a confusing API error
-            # later, when the request is refused for a missing scope.
-            log.info("google_token_scope_mismatch_reconsenting", token=str(token_file))
+            log.info("google_token_unreadable_reconsenting", token=str(token_file))
             creds = None
+
+        # from_authorized_user_file does NOT validate scopes - it simply
+        # attaches the ones we asked for. If the cached token was granted a
+        # narrower set, nothing complains until the refresh, which then fails
+        # with an opaque "invalid_scope: Bad Request". Compare explicitly.
+        #
+        # This is exactly what happens when a token is created by a Drive-only
+        # command and then reused by something that also needs Sheets.
+        if creds is not None:
+            granted = set(creds.scopes or [])
+            missing = set(scopes) - granted
+            if missing:
+                log.info(
+                    "google_token_missing_scopes_reconsenting",
+                    token=str(token_file),
+                    missing=sorted(missing),
+                    granted=sorted(granted),
+                )
+                creds = None
 
     if creds and creds.valid:
         return creds
@@ -98,6 +121,16 @@ def load_credentials(
             return creds
         except Exception as exc:  # noqa: BLE001 - fall through to full consent
             log.warning("google_token_refresh_failed", error=str(exc))
+
+    if not allow_interactive:
+        raise GoogleAuthError(
+            "Google authorisation is needed and cannot be completed "
+            "automatically.\n\n"
+            "Run this on the machine itself, complete the browser consent, "
+            "then start the watcher again:\n"
+            "    python run.py --max 1 --publisher gdrive\n\n"
+            f"(token file: {token_file})"
+        )
 
     if not credentials_file.exists():
         raise GoogleAuthError(SETUP_HELP.format(path=credentials_file))

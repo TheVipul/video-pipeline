@@ -220,3 +220,85 @@ class TestInvalidRowFeedback:
         assert set(results) == {2, 3, 4}
         for r in results.values():
             assert r["status"].strip(), "a blank status would loop forever"
+
+
+class TestAuthFailureHandling:
+    """Authorisation problems must stop the watcher, not be retried.
+
+    Regression: a token issued for Drive only was reused by the watcher, which
+    also needs Sheets. Every refresh failed with 'invalid_scope', and the
+    generic retry loop backed off to five minutes and kept going - so the
+    watcher looked alive in the terminal while the sheet silently stopped
+    updating for hours.
+    """
+
+    @pytest.mark.parametrize("message", [
+        "('invalid_scope: Bad Request', {'error': 'invalid_scope'})",
+        "invalid_grant: Token has been expired or revoked.",
+        "invalid_client: Unauthorized",
+        "Request had insufficient authentication scopes",
+    ])
+    def test_auth_errors_are_recognised(self, message):
+        from watch import _is_auth_error
+
+        assert _is_auth_error(Exception(message))
+
+    @pytest.mark.parametrize("message", [
+        "Connection reset by peer",
+        "503 Service Unavailable",
+        "timed out",
+    ])
+    def test_transient_errors_are_not_treated_as_auth(self, message):
+        """These should still back off and retry - stopping on a network blip
+        would be worse than retrying."""
+        from watch import _is_auth_error
+
+        assert not _is_auth_error(Exception(message))
+
+    def test_google_auth_error_always_counts(self):
+        from pipeline.google_auth import GoogleAuthError
+        from watch import _is_auth_error
+
+        assert _is_auth_error(GoogleAuthError("consent required"))
+
+
+class TestScopeValidation:
+    """A cached token granted narrower access than requested must be detected
+    before use, not at refresh time where it surfaces as 'invalid_scope'."""
+
+    def test_missing_scope_is_detected(self, tmp_path):
+        import json
+
+        from pipeline.google_auth import DRIVE_SCOPE, SHEETS_SCOPE, load_credentials
+
+        # A token granted Drive only, as `run.py --publisher gdrive` creates.
+        token = tmp_path / "token.json"
+        token.write_text(json.dumps({
+            "token": "x", "refresh_token": "y",
+            "client_id": "c", "client_secret": "s",
+            "scopes": [DRIVE_SCOPE],
+        }))
+
+        # Asking for Sheets as well must not silently reuse it.
+        with pytest.raises(Exception) as excinfo:
+            load_credentials(
+                [DRIVE_SCOPE, SHEETS_SCOPE],
+                credentials_file=tmp_path / "absent.json",
+                token_file=token,
+                allow_interactive=False,
+            )
+        assert "authoris" in str(excinfo.value).lower()
+
+    def test_non_interactive_refuses_to_open_a_browser(self, tmp_path):
+        """In a background process, consent would block forever on a browser
+        nobody sees. Fail with an instruction instead."""
+        from pipeline.google_auth import DRIVE_SCOPE, GoogleAuthError, load_credentials
+
+        with pytest.raises(GoogleAuthError) as excinfo:
+            load_credentials(
+                [DRIVE_SCOPE],
+                credentials_file=tmp_path / "absent.json",
+                token_file=tmp_path / "absent_token.json",
+                allow_interactive=False,
+            )
+        assert "publisher gdrive" in str(excinfo.value)

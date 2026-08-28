@@ -27,6 +27,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 
+from pipeline.google_auth import GoogleAuthError
 from pipeline.sheets import SheetsClient
 
 console = Console()
@@ -38,6 +39,27 @@ DEFAULT_INTERVAL = 10
 
 # On repeated API errors, back off rather than hammering a failing endpoint.
 MAX_BACKOFF = 300
+
+
+# Substrings that mean "the credentials are wrong", as opposed to a network
+# blip. Matched against the whole exception text because the Google libraries
+# surface these through several different exception types.
+_AUTH_MARKERS = (
+    "invalid_scope",
+    "invalid_grant",
+    "invalid_client",
+    "unauthorized",
+    "token has been expired or revoked",
+    "insufficient authentication scopes",
+    "insufficientpermissions",
+)
+
+
+def _is_auth_error(exc: Exception) -> bool:
+    if isinstance(exc, GoogleAuthError):
+        return True
+    text = str(exc).lower()
+    return any(marker in text for marker in _AUTH_MARKERS)
 
 
 def _now() -> str:
@@ -104,6 +126,24 @@ def main(argv=None) -> int:
                 pending = client.read_rows()
                 backoff = args.interval          # healthy again
             except Exception as exc:  # noqa: BLE001
+                # Authorisation problems never fix themselves. Retrying one
+                # every few minutes just hides it: the watcher looks alive
+                # while the sheet silently stops updating. Stop, and say what
+                # to do about it.
+                if _is_auth_error(exc):
+                    console.print(Panel.fit(
+                        "[bold red]Google authorisation has failed[/bold red]\n\n"
+                        f"{str(exc)[:200]}\n\n"
+                        "[bold]This will not recover on its own.[/bold] Most likely the\n"
+                        "token expired (Google expires them after 7 days for apps\n"
+                        "in testing mode), or it was issued for narrower access\n"
+                        "than the watcher needs.\n\n"
+                        "Fix it on this machine, then start the watcher again:\n"
+                        "    python run.py --max 1 --publisher gdrive",
+                        border_style="red",
+                    ))
+                    return 3
+
                 console.print(
                     f"[dim]{_now()}[/dim] [yellow]sheet read failed:[/yellow] "
                     f"{str(exc)[:90]} - retrying in {backoff}s"
