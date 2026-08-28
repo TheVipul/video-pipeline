@@ -79,8 +79,8 @@ class TestResultMapping:
 
     def _rows(self):
         return [
-            SheetRow(2, "https://www.youtube.com/watch?v=aaa"),
-            SheetRow(3, "https://www.youtube.com/watch?v=bbb"),
+            SheetRow(2, "https://www.youtube.com/watch?v=aaaaaaaaaaa"),
+            SheetRow(3, "https://www.youtube.com/watch?v=bbbbbbbbbbb"),
         ]
 
     def test_maps_records_to_row_numbers_by_url(self):
@@ -88,7 +88,7 @@ class TestResultMapping:
 
         state = {"records": {
             "aaa": {
-                "source_url": "https://www.youtube.com/watch?v=aaa",
+                "source_url": "https://www.youtube.com/watch?v=aaaaaaaaaaa",
                 "status": "published",
                 "enrichment": {"ai_title": "A", "summary": "S", "relevance": 1.0,
                                "cost_usd": 0.0031, "safety": {"concerns": []}},
@@ -107,7 +107,7 @@ class TestResultMapping:
         from run import _sheet_results
 
         state = {"records": {"aaa": {
-            "source_url": "https://www.youtube.com/watch?v=aaa",
+            "source_url": "https://www.youtube.com/watch?v=aaaaaaaaaaa",
             "status": "held_for_review",
             "enrichment": {"safety": {"concerns": ["low brand relevance (0.10)"]}},
         }}}
@@ -121,7 +121,7 @@ class TestResultMapping:
         from run import _sheet_results
 
         state = {"records": {"aaa": {
-            "source_url": "https://www.youtube.com/watch?v=aaa",
+            "source_url": "https://www.youtube.com/watch?v=aaaaaaaaaaa",
             "status": "download_failed",
             "error": "blocked after 6 attempts",
         }}}
@@ -168,3 +168,55 @@ class TestWatcher:
         source = (Path(__file__).resolve().parent.parent / "watch.py").read_text()
         assert "read_rows()" in source
         assert "include_done" not in source.split("read_rows()")[1][:40]
+
+
+class TestInvalidRowFeedback:
+    """A row must never be left blank.
+
+    Regression: pasting a page title instead of a URL produced no pipeline
+    record, so nothing was written back. The row stayed blank, which reads as
+    "still pending" - and a watcher re-reads pending rows every few seconds,
+    so one bad paste became an endless retry loop with no visible cause.
+    """
+
+    def _state(self):
+        return {"records": {}}
+
+    def test_non_url_gets_a_clear_status(self):
+        from pipeline.sheets import SheetRow
+        from run import _sheet_results
+
+        row = SheetRow(2, "Artificial intelligence explained - YouTube")
+        result = _sheet_results(self._state(), [row])[2]
+
+        assert result["status"] == "Invalid link"
+        # The note must tell the operator how to fix it, not just that it broke.
+        assert "address bar" in result["notes"]
+
+    def test_valid_but_unreached_url_is_distinguished(self):
+        """A row the run simply did not get to is a different situation from a
+        row that can never work, and must not be reported the same way."""
+        from pipeline.sheets import SheetRow
+        from run import _sheet_results
+
+        row = SheetRow(2, "https://www.youtube.com/watch?v=jNQXAC9IVRw")
+        result = _sheet_results(self._state(), [row])[2]
+
+        assert result["status"] == "Not processed"
+        assert "Invalid" not in result["status"]
+
+    def test_every_row_receives_a_status(self):
+        """The invariant that stops the retry loop."""
+        from pipeline.sheets import SheetRow
+        from run import _sheet_results
+
+        rows = [
+            SheetRow(2, "not a url at all"),
+            SheetRow(3, "https://www.youtube.com/watch?v=jNQXAC9IVRw"),
+            SheetRow(4, "ftp://example.com/video.mp4"),
+        ]
+        results = _sheet_results(self._state(), rows)
+
+        assert set(results) == {2, 3, 4}
+        for r in results.values():
+            assert r["status"].strip(), "a blank status would loop forever"

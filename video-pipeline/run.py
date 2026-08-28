@@ -23,6 +23,7 @@ from agent.graph import run_pipeline
 from config import get_settings
 from logging_setup import get_logger, setup_logging
 from pipeline.publishers import get_publisher
+from safety.input_validator import InputValidationError, validate_url
 from report import generate_report
 from safety.audit_log import AuditLog
 from safety.cost_guard import CostGuard
@@ -62,10 +63,27 @@ def _sheet_results(final_state: dict, sheet_rows: list) -> dict[int, dict]:
     for row in sheet_rows:
         record = by_url.get(row.url)
         if record is None:
-            results[row.row_number] = {
-                "status": "Not processed",
-                "notes": "Pipeline did not reach this row (limit or circuit breaker)",
-            }
+            # No record means the pipeline never got as far as this row. The
+            # usual cause is a cell that is not a URL at all - people paste the
+            # browser tab title instead of the address. Say so plainly, and
+            # always write *something* back: a row left blank looks pending
+            # forever, and a watcher will retry it every few seconds until
+            # somebody notices.
+            try:
+                validate_url(row.url)
+                status, note = (
+                    "Not processed",
+                    "The run stopped before reaching this row "
+                    "(video limit reached, or too many failures in a row).",
+                )
+            except InputValidationError as exc:
+                status, note = (
+                    "Invalid link",
+                    f"This is not a YouTube video link. {exc} "
+                    f"Copy the address from the browser address bar, "
+                    f"not the page title.",
+                )
+            results[row.row_number] = {"status": status, "notes": note[:500]}
             continue
 
         enrichment = record.get("enrichment") or {}
