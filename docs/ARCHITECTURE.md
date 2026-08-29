@@ -29,7 +29,7 @@
 │                                                 │                        │
 │                              ┌──────────────────▼───────────┐           │
 │                              │      publish                  │          │
-│                              │  (Local / S3 / YouTube)       │          │
+│                              │ (Local / Drive / S3 / YouTube)│          │
 │                              └──────────────────┬───────────┘           │
 │                                                 │                        │
 │                              ┌──────────────────▼───────────┐           │
@@ -59,7 +59,7 @@
   LangGraph specifically. LangGraph gives us:
   - Typed state schema (PipelineState)
   - Conditional branching (decide_next after each video)
-  - Built-in checkpointing (MemorySaver) for resume
+  - In-process checkpointing (MemorySaver) plus inspectable JSON state
   - Visualization tools for the video walkthrough
 - **Trade-off**: A 200-line script would be simpler for the linear flow. But
   the agent abstraction lets the pipeline add a planner node later (e.g.,
@@ -91,9 +91,9 @@ The single biggest technical risk in this project. We layer:
   archive). The Publisher interface decouples "what to publish" from
   "where to publish." Local is always-works; S3/MinIO is for production;
   YouTube is a documented extension.
-- **YouTube stub**: Re-uploading another creator's content without
-  transformation rights violates YouTube TOS. The stub documents the
-  OAuth + compliance path without shipping code that would be misused.
+- **YouTube publisher**: A working resumable YouTube Data API v3 upload path,
+  private by default and intended only for content the operator owns or is
+  authorised to distribute. Drive remains the safer demonstration default.
 
 ### 5. Graceful degradation
 - No LLM key → pipeline runs with original metadata + rules-only safety
@@ -141,7 +141,7 @@ Every run produces:
 | LLM budget exhausted | Cost guard raises, pipeline continues without LLM |
 | YouTube blocks all our clients | Documented path to PO token server, residential proxies, cookie auth |
 | Disk fills up | Preflight disk check (2 GB min); refuse to start |
-| Pipeline crashes mid-run | LangGraph checkpoint to `outputs/checkpoint.json`; resume with `--checkpoint` |
+| Pipeline crashes mid-run | Final state is inspectable as JSON; `--checkpoint` can resume from an explicitly saved state. Durable per-node storage is a production improvement. |
 | Bad URL (typo, malicious) | Input validator rejects non-YouTube, non-allowlist paths |
 | Copyrighted content | Rules layer flags known IP brands; LLM reviews for context |
 | Watermark text breaks ffmpeg | Test drawtext first; skip gracefully if it fails |

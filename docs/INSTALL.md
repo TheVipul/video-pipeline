@@ -75,22 +75,22 @@ Everything else is optional. **The pipeline runs with no credentials at all.**
 
 **macOS / Linux**
 ```bash
-git clone <repo-url>
-cd youtube-pipeline/video-pipeline
+git clone https://github.com/TheVipul/video-pipeline.git
+cd video-pipeline/video-pipeline
 ./setup.sh
 ```
 
 **Windows** (PowerShell)
 ```powershell
-git clone <repo-url>
-cd youtube-pipeline\video-pipeline
+git clone https://github.com/TheVipul/video-pipeline.git
+cd video-pipeline\video-pipeline
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
 ### Verify it works
 
 ```bash
-.venv/bin/python -m pytest          # 156 tests, no network, no credentials
+.venv/bin/python -m pytest          # 184 tests, no network, no credentials
 ```
 
 ```powershell
@@ -134,8 +134,9 @@ Costs roughly **$0.003 per video**. `SAFETY_MAX_LLM_SPEND_USD` caps spend per ru
 
 ### 2. Google credentials — Drive upload and Sheets
 
-Needed for `--publisher gdrive` and for any `--sheet` usage. One setup covers
-Drive, Sheets and (optionally) YouTube.
+Needed for `--publisher gdrive` and for any `--sheet` usage. The shared OAuth
+setup covers Drive and Sheets, and adds the narrow `youtube.upload` scope only
+when the YouTube publisher is selected.
 
 1. [console.cloud.google.com](https://console.cloud.google.com) → create a project
 2. **APIs & Services → Library** → enable **Google Drive API** and **Google Sheets API**
@@ -146,6 +147,12 @@ Drive, Sheets and (optionally) YouTube.
 
 ```bash
 .venv/bin/python run.py --max 1 --publisher gdrive
+```
+
+You can also complete or verify consent without processing a video:
+
+```bash
+.venv/bin/python run.py --check-auth --publisher gdrive
 ```
 
 > **Two gotchas.** You must add yourself as a *test user* or consent fails with
@@ -165,7 +172,32 @@ Before enabling it, read `docs/DECISIONS.md`. Re-uploading third-party video
 to a public channel is a rights question, not a technical one - which is why
 Drive is the default target.
 
-### 4. Cookies and proxies — optional, for scale
+Enable the YouTube Data API v3 in the same Google Cloud project, then run:
+
+```bash
+.venv/bin/python run.py --check-auth --publisher youtube
+```
+
+This reuses `inputs/google_token.json` and adds only the `youtube.upload`
+scope. Uploads default to private.
+
+### 4. S3-compatible storage — optional
+
+For AWS S3, Cloudflare R2, Backblaze B2, or MinIO, set:
+
+```env
+S3_BUCKET=your-bucket
+S3_PREFIX=republished/
+S3_REGION=us-east-1
+S3_ENDPOINT_URL=https://your-provider-endpoint  # omit for AWS S3
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+```
+
+Then select `--publisher s3`. The pipeline fails with an actionable message
+when `S3_BUCKET` is missing; it never invents a placeholder bucket.
+
+### 5. Cookies and proxies — optional, for scale
 
 Only needed if YouTube starts blocking you:
 
@@ -308,6 +340,7 @@ run.py --max N                    # limit videos this run
        --brand NAME               # brand profile (implies brand mode)
        --mode general|brand       # override mode explicitly
        --publisher local|gdrive|s3|youtube
+       --check-auth              # verify/complete Google OAuth, then exit
        --sheet ID                 # read URLs from a sheet, write results back
        --create-sheet             # create a formatted sheet and exit
        --force                    # reprocess rows that already have a status

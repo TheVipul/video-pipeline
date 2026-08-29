@@ -31,11 +31,10 @@ from typing import Optional
 
 from logging_setup import get_logger
 from pipeline.ai_analyzer import AIEnrichment
+from pipeline.google_auth import YOUTUBE_UPLOAD_SCOPE, load_credentials
 from pipeline.publishers.base import PublishResult, Publisher
 
 log = get_logger(__name__)
-
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 # YouTube asks clients to retry these, with exponential backoff, and to treat
 # anything else as fatal.
@@ -55,7 +54,9 @@ class YouTubePublisher(Publisher):
         chunk_size: int = 4 * 1024 * 1024,
     ) -> None:
         self.credentials_file = Path(credentials_file) if credentials_file else Path("inputs/client_secret.json")
-        self.token_file = Path(token_file) if token_file else Path("inputs/youtube_token.json")
+        # The shared Google auth module caches one correctly scoped token for
+        # Drive, Sheets, and (when selected) YouTube upload.
+        self.token_file = Path(token_file) if token_file else None
         self.privacy_status = privacy_status
         self.category_id = category_id
         self.chunk_size = chunk_size
@@ -65,41 +66,11 @@ class YouTubePublisher(Publisher):
 
     def _load_credentials(self):
         """Load cached credentials, refreshing or running consent as needed."""
-        try:
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
-            from google_auth_oauthlib.flow import InstalledAppFlow
-        except ImportError as exc:
-            raise RuntimeError(
-                "YouTube upload needs google-api-python-client and "
-                "google-auth-oauthlib. Install with: "
-                "pip install google-api-python-client google-auth-oauthlib"
-            ) from exc
-
-        creds = None
-        if self.token_file.exists():
-            creds = Credentials.from_authorized_user_file(str(self.token_file), SCOPES)
-
-        if creds and creds.valid:
-            return creds
-
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not self.credentials_file.exists():
-                raise RuntimeError(
-                    f"No OAuth client secrets at {self.credentials_file}. "
-                    "Create an OAuth 2.0 Desktop client in Google Cloud with the "
-                    "YouTube Data API v3 enabled, download the JSON, and place it there."
-                )
-            flow = InstalledAppFlow.from_client_secrets_file(
-                str(self.credentials_file), SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-
-        self.token_file.parent.mkdir(parents=True, exist_ok=True)
-        self.token_file.write_text(creds.to_json())
-        return creds
+        return load_credentials(
+            [YOUTUBE_UPLOAD_SCOPE],
+            credentials_file=self.credentials_file,
+            token_file=self.token_file,
+        )
 
     def _get_service(self):
         if self._service is None:

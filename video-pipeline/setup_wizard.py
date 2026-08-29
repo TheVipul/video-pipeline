@@ -57,6 +57,10 @@ def available_brands() -> list[str]:
 
 
 def main() -> int:
+    python_cmd = (
+        r".venv\Scripts\python.exe" if sys.platform == "win32"
+        else ".venv/bin/python"
+    )
     print("=" * 66)
     print("  Video Pipeline - first-run setup")
     print("=" * 66)
@@ -115,6 +119,7 @@ def main() -> int:
             ("local", "A local folder (no setup needed)"),
             ("gdrive", "Google Drive (needs Google credentials)"),
             ("s3", "S3-compatible storage (needs keys)"),
+            ("youtube", "YouTube (private by default; only for content you own)"),
         ],
     )
 
@@ -134,15 +139,17 @@ def main() -> int:
     print(f"  Brand filter  : {'on' if mode == 'brand' else 'off (general mode)'}")
     print("=" * 66)
 
-    if publisher == "gdrive":
-        print("\n  Google Drive needs one-time credentials:")
+    if publisher in {"gdrive", "youtube"}:
+        print("\n  Google APIs need one-time credentials:")
         print("    inputs/client_secret.json")
-        print("  Run `python run.py --check-auth` to complete consent.")
+        print(f"  Run `{python_cmd} run.py --check-auth --publisher {publisher}`")
+        print("  to complete consent.")
     if publisher == "s3":
-        print("\n  Set S3_ACCESS_KEY / S3_SECRET_KEY and S3_BUCKET in .env")
+        print("\n  Set S3_BUCKET and, when required, S3_ACCESS_KEY /")
+        print("  S3_SECRET_KEY in .env. S3_ENDPOINT_URL supports R2, B2 and MinIO.")
 
     print("\n  Add video URLs to inputs/urls.txt, then run:")
-    print(f"    .venv/bin/python run.py --max 5 --publisher {publisher} --brand {brand}\n")
+    print(f"    {python_cmd} run.py --max 5 --publisher {publisher} --brand {brand}\n")
     return 0
 
 

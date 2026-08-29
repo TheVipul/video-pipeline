@@ -5,7 +5,7 @@ Implementations:
     - LocalPublisher  : writes to a local directory (always works, no auth)
     - GoogleDrivePublisher : uploads to Google Drive (the default target)
     - S3Publisher     : uploads to any S3-compatible store (MinIO, AWS, R2)
-    - YouTubePublisher: stubbed - documents the OAuth flow for production
+    - YouTubePublisher: resumable private-by-default YouTube Data API upload
 """
 import inspect
 

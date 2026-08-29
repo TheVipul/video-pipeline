@@ -11,7 +11,7 @@ engineers and scheduled runs.
 ```bash
 cd video-pipeline
 ./setup.sh                  # setup.ps1 on Windows
-.venv/bin/python -m pytest  # 156 tests, no network, no credentials
+.venv/bin/python -m pytest  # 184 tests, no network, no credentials
 .venv/bin/python run.py --max 5 --publisher local --brand generic
 ```
 
@@ -89,8 +89,9 @@ classified rather than retried blindly — a *blocked* request is worth another
 route, a *removed* video never will be, so it fails immediately instead of
 consuming the whole ladder.
 
-Runs checkpoint after every node and resume rather than restart. Uploads are
-idempotent: re-publishing a video updates the existing file instead of
+LangGraph keeps an in-process checkpoint while a run is active, and the final
+state is written to JSON for inspection or an explicit later resume. Uploads
+are idempotent: re-publishing a video updates the existing file instead of
 creating a second copy, even if its title changed.
 
 ## The sheet interface

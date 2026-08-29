@@ -21,7 +21,7 @@ cat <<'MSG'
 
 Setup complete.
 
-  1. Check it works (no credentials needed - 156 tests, no network):
+  1. Check it works (no credentials needed - 184 tests, no network):
        .venv/bin/python -m pytest
 
   2. Configure it (asks brand vs general use, and where to publish):

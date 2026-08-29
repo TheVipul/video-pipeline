@@ -41,8 +41,13 @@ class PipelineSettings(BaseSettings):
     brand: str = "generic"
     output_dir: Path = PROJECT_ROOT / "outputs"
     max_videos: int = 5
-    max_duration_sec: int = 600
+    # 30 minutes. The cap exists to bound download time and cost on an
+    # unattended job, not to be selective about content - and at 10 minutes it
+    # rejected ordinary videos, which reads as the tool being broken rather
+    # than careful.
+    max_duration_sec: int = 1800
     dry_run: bool = False
+    publisher: str = "local"
 
     # "general" | "brand".
     #
@@ -61,6 +66,18 @@ class PipelineSettings(BaseSettings):
     @property
     def is_brand_mode(self) -> bool:
         return self.mode.lower() == "brand"
+
+
+class S3Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="S3_", env_file=str(PROJECT_ROOT / ".env"), extra="ignore"
+    )
+    bucket: Optional[str] = None
+    prefix: str = "republished/"
+    endpoint_url: Optional[str] = None
+    access_key: Optional[str] = None
+    secret_key: Optional[str] = None
+    region: str = "us-east-1"
 
 
 class SafetySettings(BaseSettings):
@@ -82,6 +99,7 @@ class Settings:
         self.youtube = YouTubeSettings()
         self.proxy = ProxySettings()
         self.pipeline = PipelineSettings()
+        self.s3 = S3Settings()
         self.safety = SafetySettings()
         self.project_root = PROJECT_ROOT
 
@@ -97,6 +115,7 @@ class Settings:
             "max_videos": self.pipeline.max_videos,
             "max_duration_sec": self.pipeline.max_duration_sec,
             "dry_run": self.pipeline.dry_run,
+            "publisher": self.pipeline.publisher,
             "cookies_configured": bool(self.youtube.cookies_file or self.youtube.cookies_from_browser),
             "proxy_file": str(self.proxy.proxy_file) if self.proxy.proxy_file else "(none)",
             "output_dir": str(self.pipeline.output_dir),

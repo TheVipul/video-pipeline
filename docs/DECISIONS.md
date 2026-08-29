@@ -16,7 +16,8 @@ to show how I think, not to defend every choice as correct.
 **Why LangGraph wins**:
 - The JD specifically calls out "stateful, dynamic AI systems with memory"
   and LangGraph by name
-- Built-in checkpointing (MemorySaver) means resume is free
+- MemorySaver makes in-process state inspection straightforward; durable
+  per-node persistence would use a SQLite or Postgres checkpointer
 - The graph visualization is great for the video walkthrough
 - The state schema (TypedDict) is JSON-serializable, easy to inspect
 
@@ -33,13 +34,14 @@ wouldn't need. Worth it.
 
 **Why Local wins**:
 - Always works — no setup, no credentials, no external dependencies
-- The S3/YouTube paths are documented in `pipeline/publishers/s3.py` and
-  `pipeline/publishers/youtube.py`
+- The S3 and YouTube paths are working implementations in
+  `pipeline/publishers/s3.py` and `pipeline/publishers/youtube.py`
 - For a hiring manager demo, reliability > impressive-but-flaky
 
 **What I gave up**: A live YouTube re-upload would be a more impressive
-demo, but it would also be a TOS risk if mishandled. The stub makes it
-clear that the integration is intentional, not just missing.
+demo, but it would also be a TOS and rights risk if mishandled. The
+implementation therefore defaults uploads to private and is only for
+authorised content.
 
 ## 3. Rules-based content safety + LLM (vs. LLM only)
 
@@ -198,10 +200,10 @@ in Aug 2026).
 | Idea | Why deferred |
 |---|---|
 | MinIO for local S3 | S3Publisher already exists; spinning up MinIO adds setup overhead without changing the demo story |
-| Resume from checkpoint | LangGraph MemorySaver is wired; a CLI flag for `--checkpoint file.json` is a 10-line add |
+| Durable crash recovery | MemorySaver is in-process and `--checkpoint` can load explicitly saved JSON; production would add SQLite/Postgres persistence after every node |
 | Unit tests for every module | Tests for safety module exist; full coverage would be nice but 2-3 day timebox |
 | Pre-commit hooks + CI | Project structure is clean; linters can be added |
 | PO token server (`bgutil-ytdlp-pot-server`) | Configured the package; running the local server requires Chromium dependencies |
-| YouTube Data API re-upload | Documented as a stub; would require OAuth flow + compliance review |
+| Public YouTube re-upload | The API upload is implemented and private by default; public use still requires rights and compliance review |
 | Evaluation harness (pass rate metrics) | Manual review is fine for one-shot demo; Prometheus exporter would be the production add |
 | Slack/Linear notification on `review` verdict | Hook system; would be a 1-hour add once the brand team integration is defined |

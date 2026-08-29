@@ -145,7 +145,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--urls", type=Path, default=Path("inputs/urls.txt"))
     parser.add_argument("--brand", type=str, default=None, help="Brand config name (e.g. generic, kitchenware)")
     parser.add_argument("--max", type=int, default=None, help="Max videos to process")
-    parser.add_argument("--publisher", choices=["local", "gdrive", "s3", "youtube"], default="local")
+    parser.add_argument(
+        "--publisher", choices=["local", "gdrive", "s3", "youtube"], default=None,
+        help="Publish target (default: PIPELINE_PUBLISHER from .env, or local)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Skip network calls (metadata + downloads are mocked)")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     parser.add_argument("--report", type=Path, default=None, help="Output HTML report path")
@@ -157,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Worksheet tab name (default: Sheet1)")
     parser.add_argument("--create-sheet", action="store_true",
                         help="Create a new, correctly formatted sheet and exit")
+    parser.add_argument("--check-auth", action="store_true",
+                        help="Complete or verify Google OAuth setup and exit")
     parser.add_argument("--force", action="store_true",
                         help="Reprocess sheet rows that already have a status")
     parser.add_argument("--mode", choices=["general", "brand"], default=None,
@@ -177,6 +182,48 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     settings = get_settings()
+    # An explicit CLI choice wins; otherwise honour the setup wizard's
+    # PIPELINE_PUBLISHER value instead of silently reverting to local.
+    args.publisher = args.publisher or settings.pipeline.publisher
+    if args.publisher not in {"local", "gdrive", "s3", "youtube"}:
+        console.print(
+            f"[red]Invalid PIPELINE_PUBLISHER:[/red] {args.publisher!r}. "
+            "Choose local, gdrive, s3, or youtube."
+        )
+        return 4
+    settings.pipeline.publisher = args.publisher
+
+    if args.check_auth:
+        from pipeline.google_auth import (
+            BASE_SCOPES,
+            GoogleAuthError,
+            YOUTUBE_UPLOAD_SCOPE,
+            load_credentials,
+        )
+
+        scopes = list(BASE_SCOPES)
+        if args.publisher == "youtube":
+            scopes.append(YOUTUBE_UPLOAD_SCOPE)
+        try:
+            load_credentials(scopes)
+        except GoogleAuthError as exc:
+            console.print(f"[red]Google authorisation failed:[/red]\n{exc}")
+            return 4
+        except Exception as exc:  # noqa: BLE001 - OAuth errors must be actionable
+            console.print(
+                "[red]Google authorisation did not complete.[/red]\n"
+                f"{exc}\n\nCheck the enabled APIs, OAuth test user, and "
+                "inputs/client_secret.json, then try again."
+            )
+            return 4
+        console.print(Panel.fit(
+            "[bold green]Google authorisation is ready[/bold green]\n"
+            "The cached token covers Drive and Sheets"
+            + (" and YouTube upload" if args.publisher == "youtube" else "")
+            + ".",
+            border_style="green",
+        ))
+        return 0
     if args.brand:
         settings.pipeline.brand = args.brand
         # Asking for a real brand implies you want that brand's rules.
@@ -260,14 +307,21 @@ def main(argv: list[str] | None = None) -> int:
 
     # Publisher
     if args.publisher == "s3":
-        # S3 requires boto3 + credentials. Caller must provide via env.
         from pipeline.publishers.s3 import S3Publisher
-        s3_bucket = settings.pipeline.output_dir.name + "-bucket"  # placeholder
-        try:
-            publisher = S3Publisher(bucket=s3_bucket)
-        except Exception as exc:
-            console.print(f"[yellow]S3 publisher init failed ({exc}); falling back to local.[/yellow]")
-            publisher = get_publisher("local", output_dir=output_dir / "published")
+        if not settings.s3.bucket:
+            console.print(
+                "[red]S3_BUCKET is required when --publisher s3 is selected.[/red]\n"
+                "Set it in .env, then run again."
+            )
+            return 4
+        publisher = S3Publisher(
+            bucket=settings.s3.bucket,
+            prefix=settings.s3.prefix,
+            endpoint_url=settings.s3.endpoint_url,
+            access_key=settings.s3.access_key,
+            secret_key=settings.s3.secret_key,
+            region=settings.s3.region,
+        )
     else:
         # The factory filters kwargs per publisher, so callers can pass the
         # superset without knowing which backend was selected.
