@@ -51,39 +51,60 @@ _SHEET_STATUS = {
 
 
 def _sheet_results(final_state: dict, sheet_rows: list) -> dict[int, dict]:
-    """Map pipeline records back onto the spreadsheet rows they came from."""
+    """Map pipeline records back onto the spreadsheet rows they came from.
+
+    Rows are matched by video id rather than by URL string. A record carries
+    the *normalised* url the validator produced, while column A holds whatever
+    the operator pasted - and YouTube's share and search links append tracking
+    params (`&pp=...`, `&si=...`) that normalisation strips. Matching raw
+    strings made every such row report "Not processed" even after it had
+    published.
+    """
     records = final_state.get("records") or {}
-    by_url = {}
-    for record in records.values():
-        url = record.get("source_url") or ""
-        if url:
-            by_url[url] = record
+    by_video_id = {}
+    for key, record in records.items():
+        ident = record.get("video_id") or key
+        source = record.get("source_url") or ""
+        if source:
+            # Run both sides through the same validator so the two ids are
+            # derived identically, whatever form each URL happens to be in.
+            try:
+                ident = validate_url(source).video_id
+            except InputValidationError:
+                pass
+        by_video_id[ident] = record
 
     results: dict[int, dict] = {}
     for row in sheet_rows:
-        record = by_url.get(row.url)
-        if record is None:
-            # No record means the pipeline never got as far as this row. The
-            # usual cause is a cell that is not a URL at all - people paste the
-            # browser tab title instead of the address. Say so plainly, and
-            # always write *something* back: a row left blank looks pending
-            # forever, and a watcher will retry it every few seconds until
-            # somebody notices.
-            try:
-                validate_url(row.url)
-                status, note = (
-                    "Not processed",
-                    "The run stopped before reaching this row "
-                    "(video limit reached, or too many failures in a row).",
-                )
-            except InputValidationError as exc:
-                status, note = (
-                    "Invalid link",
+        # Validate first: it yields the id used for the lookup, and a failure
+        # here is itself the most useful thing to report back. The usual cause
+        # is a cell that is not a URL at all - people paste the browser tab
+        # title instead of the address.
+        try:
+            video_id = validate_url(row.url).video_id
+        except InputValidationError as exc:
+            results[row.row_number] = {
+                "status": "Invalid link",
+                "notes": (
                     f"This is not a YouTube video link. {exc} "
                     f"Copy the address from the browser address bar, "
-                    f"not the page title.",
-                )
-            results[row.row_number] = {"status": status, "notes": note[:500]}
+                    f"not the page title."
+                )[:500],
+            }
+            continue
+
+        record = by_video_id.get(video_id)
+        if record is None:
+            # Always write *something* back: a row left blank looks pending
+            # forever, and a watcher will retry it every few seconds until
+            # somebody notices.
+            results[row.row_number] = {
+                "status": "Not processed",
+                "notes": (
+                    "The run stopped before reaching this row "
+                    "(video limit reached, or too many failures in a row)."
+                )[:500],
+            }
             continue
 
         enrichment = record.get("enrichment") or {}

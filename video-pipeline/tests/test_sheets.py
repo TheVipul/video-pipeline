@@ -103,6 +103,23 @@ class TestResultMapping:
         # A row the run never reached must say so rather than look successful.
         assert results[3]["status"] == "Not processed"
 
+    def test_tracking_params_still_match_their_record(self):
+        """A share/search link carries `&pp=...`; the record holds the bare
+        url. Matching on the raw string reported published rows as untouched."""
+        from run import _sheet_results
+
+        pasted = "https://www.youtube.com/watch?v=wUebgaTjVQ4&pp=ygUCYWk%3D"
+        state = {"records": {"wUebgaTjVQ4": {
+            "video_id": "wUebgaTjVQ4",
+            "source_url": "https://www.youtube.com/watch?v=wUebgaTjVQ4",
+            "status": "published",
+            "enrichment": {"ai_title": "A", "cost_usd": 0.0},
+            "publish": {"remote_path": "https://drive.google.com/file/d/x"},
+        }}}
+        result = _sheet_results(state, [SheetRow(2, pasted)])[2]
+
+        assert result["status"] == "Published"
+
     def test_internal_statuses_are_translated_for_humans(self):
         from run import _sheet_results
 
