@@ -90,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 ### Verify it works
 
 ```bash
-.venv/bin/python -m pytest          # 184 tests, no network, no credentials
+.venv/bin/python -m pytest          # 185 tests, no network, no credentials
 ```
 
 ```powershell

@@ -11,7 +11,7 @@ engineers and scheduled runs.
 ```bash
 cd video-pipeline
 ./setup.sh                  # setup.ps1 on Windows
-.venv/bin/python -m pytest  # 184 tests, no network, no credentials
+.venv/bin/python -m pytest  # 185 tests, no network, no credentials
 .venv/bin/python run.py --max 5 --publisher local --brand generic
 ```
 

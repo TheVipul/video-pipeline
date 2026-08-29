@@ -126,7 +126,7 @@ nothing permanently.
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Expect **184 passed**. This proves the install works before any credential is
+Expect **185 passed**. This proves the install works before any credential is
 involved. If this fails, stop and fix it here — nothing later will work.
 
 ### ☐ 3.3 Verify the pipeline itself
